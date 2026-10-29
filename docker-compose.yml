@@ -1,0 +1,76 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: herosos_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_NAME: herosos
+      DB_USER: herosos
+      DB_PASSWORD: herosos
+      APP_ENV: dev
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      APP_URL: http://localhost:8080
+      JWT_SECRET: change-me-in-production
+      CORS_ALLOWED_ORIGIN: "http://localhost:3000,http://localhost:5173"
+    depends_on:
+      - db
+      - mailhog
+    networks:
+      - herosos
+
+  db:
+    image: mysql:8.0
+    container_name: herosos_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: herosos
+      MYSQL_USER: herosos
+      MYSQL_PASSWORD: herosos
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "3307:3306"
+    networks:
+      - herosos
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: herosos_pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_USER: herosos
+      PMA_PASSWORD: herosos
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - herosos
+    # Dev-only tool (see cahier des charges 2.4) - do not expose in production
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: herosos_mail
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - herosos
+
+networks:
+  herosos:
+
+volumes:
+  db_data:
